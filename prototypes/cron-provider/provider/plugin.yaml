@@ -1,0 +1,10 @@
+name: hivecast
+description: >-
+  HiveCast — cloud-owned managed cron provider (prototype). Mirrors the Chronos
+  wire contract but speaks to a HiveCast control plane: the agent computes each
+  job's next-fire time and arms a one-shot with HiveCast; HiveCast calls the
+  agent back at fire time over a JWT-authenticated webhook. Chat-created jobs
+  reach the cloud automatically because every creation flows through
+  register_job / on_jobs_changed. Inert unless cron.provider=hivecast.
+version: 0.1.0
+author: HiveCast prototype

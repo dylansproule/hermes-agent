@@ -1,0 +1,9 @@
+{
+  "name": "@hermes/proto-cron-provider",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run --config vitest.config.ts",
+    "e2e": "node --experimental-strip-types harness/run-e2e.ts"
+  }
+}
