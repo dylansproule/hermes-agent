@@ -1,0 +1,49 @@
+{
+  "legacy_boot_to_ready_ms": 14072,
+  "legacy_fire_latencies_ms": [
+    1033,
+    1033,
+    61033
+  ],
+  "legacy_first_fire_ms": 61033,
+  "legacy_fire_times": [
+    1793557746,
+    1793557806,
+    1793557926
+  ],
+  "legacy_idle": {
+    "sampleSeconds": 20,
+    "polls": 10,
+    "cpuAvgPercent": 1.22,
+    "rssMaxKb": 229952
+  },
+  "overhaul_boot_to_ready_ms": 14554,
+  "overhaul_arm_latency_ms": 1669,
+  "overhaul_fire_precision_ms": [
+    137,
+    360,
+    492
+  ],
+  "overhaul_fire_count": 3,
+  "overhaul_idle": {
+    "sampleSeconds": 20,
+    "polls": 10,
+    "cpuAvgPercent": 3.2,
+    "rssMaxKb": 233936
+  },
+  "scale_to_zero": {
+    "fire_at_epoch_ms": 1793558314250,
+    "wake_started_epoch_ms": 1793558195808,
+    "gateway_boot_to_ready_ms": 2030,
+    "ready_epoch_ms": 1793558316799,
+    "accepted_epoch_ms": 1793558318805,
+    "job_done_epoch_ms": 1793558318805,
+    "fire_at_to_accepted_ms": 4555,
+    "refused_attempts_before_wake": 3
+  },
+  "sweep_throughput": {
+    "arms": 10000,
+    "due": 100,
+    "full_scan_pass_ms": 0.629
+  }
+}
