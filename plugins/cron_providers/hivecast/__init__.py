@@ -324,16 +324,43 @@ class HiveCastCronScheduler(CronScheduler):
         # truth rather than inventing a failure.
         return True, None
 
+    def _cloud_armed_fire_at(self, job_id: str) -> str | None:
+        """Resolve the cloud-side armed cycle for a job from the control plane.
+
+        The arming process and the firing process can differ (the CLI arms on
+        ``cron create``; the gateway fires): the local ``_armed`` map then
+        misses a job that IS armed cloud-side. The control plane's arms
+        listing (pending/firing/delivered — the reconciliation view) is the
+        source of truth; its fireAt is the exact cycle address to ack. A pull
+        failure degrades to "not cloud-armed" (logged) — never blocks a fire.
+        """
+        with self._lock:
+            local = self._armed.get(job_id)
+        if local:
+            return local
+        try:
+            for item in self._get_client().list_armed():
+                if item.get("jobId") == job_id:
+                    fire_at = _normalize_fire_at(str(item.get("fireAt") or ""))
+                    with self._lock:
+                        self._armed[job_id] = fire_at
+                    return fire_at
+        except Exception as e:  # health: allow BLE001 -- optional read: any failure means "cannot confirm cloud-armed"
+            logger.warning("HiveCast cloud-armed lookup for %s failed: %s", job_id, e, exc_info=True)
+        return None
+
     def fire_claimed(
         self, claimed_job: dict, *, adapters: Any = None, loop: Any = None, cancel_event: Any = None
     ) -> bool:
         ran = super().fire_claimed(claimed_job, adapters=adapters, loop=loop, cancel_event=cancel_event)
         job_id = str(claimed_job.get("id") or "")
-        with self._lock:
-            cloud_armed = job_id in self._armed
-        if ran and cloud_armed:
-            success, error = self._execution_outcome(claimed_job)
-            self._ack_logged(job_id, claimed_job.get("_scheduled_instant"), success=success, error=error)
+        if ran:
+            # Cross-process safe: locally-armed fast path, then the control
+            # plane's arms view (the CLI-armed/gateway-fired topology).
+            cloud_fire_at = self._cloud_armed_fire_at(job_id)
+            if cloud_fire_at:
+                success, error = self._execution_outcome(claimed_job)
+                self._ack_logged(job_id, claimed_job.get("_scheduled_instant"), success=success, error=error)
         if ran:
             from cron.jobs import get_job
             job = get_job(job_id)

@@ -217,6 +217,27 @@ def test_cloud_armed_fire_acks_by_job_and_fire_at(provider, seeded_jobs, monkeyp
     assert ack["outcome"] == "fired"
 
 
+def test_cross_process_fire_acks_from_cloud_arms_view(provider, seeded_jobs, monkeypatch):
+    """CLI-armed, gateway-fired: the local _armed map is empty in the firing
+    process; the control plane's arms view is the source of truth for the
+    cycle address to ack (the transport-loop topology caught this live)."""
+    scheduler, fake = provider
+    fake._armed = [{"jobId": "job-keep", "fireAt": "2026-11-02T12:00:00Z", "status": "delivered"}]
+    monkeypatch.setattr(
+        "cron.scheduler_provider.CronScheduler.fire_claimed", lambda self, claimed, **kw: True)
+    monkeypatch.setattr(
+        "cron.executions.get_execution",
+        lambda execution_id: {"status": "completed", "error": None})
+
+    scheduler.fire_claimed(_claim(seeded_jobs["keep"], occurrence="2026-11-02T12:00:00+00:00"))
+
+    assert len(fake.acks) == 1
+    assert fake.acks[0]["job_id"] == "job-keep"
+    assert fake.acks[0]["fire_at"] == "2026-11-02T12:00:00Z"
+    # the resolved cycle is cached: subsequent fires of the slot skip the pull
+    assert scheduler._armed["job-keep"] == "2026-11-02T12:00:00Z"
+
+
 def test_failed_execution_acks_failed_with_error(provider, seeded_jobs, monkeypatch):
     scheduler, fake = provider
     scheduler._armed = {"job-keep": "2026-11-02T12:00:00Z"}
