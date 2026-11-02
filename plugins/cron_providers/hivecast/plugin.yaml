@@ -1,0 +1,11 @@
+name: hivecast
+description: >-
+  HiveCast managed-cron provider for scale-to-zero hosted agents. Arms each
+  job's next fire in the HiveCast control plane (capability-authenticated
+  ingress with caller-owned idempotency keys); the control plane sweeps,
+  mints a short-lived fire JWT, and calls back /api/cron/fire. The provider
+  mirrors dashboard decisions (removed/paused/resumed) into jobs.json on its
+  reconciliation pull and acks the control plane by (jobId, fireAt) when a
+  cloud-armed fire completes. Inert unless cron.provider=hivecast.
+version: 1.0.0
+author: HiveCast
