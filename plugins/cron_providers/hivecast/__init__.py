@@ -169,7 +169,24 @@ class HiveCastCronScheduler(CronScheduler):
         return self._client
 
     def start(self, stop_event, *, adapters=None, loop=None, interval=60):
+        """Initial reconcile, then a PERIODIC decision pull until stop_event.
+
+        The pull is this provider's two-way-sync channel: dashboard
+        removals/pauses arrive as pulled DECISIONS, and the arming process is
+        not always the process that must apply them (the CLI arms on create;
+        the gateway fires) — in-process hooks alone would never see them. A
+        daemon thread honors stop_event; the cadence floor (15s) keeps the
+        pull polite on a awake runtime (an asleep runtime pulls nothing —
+        cloud-side provision enforcement covers it until wake).
+        """
         self._reconcile_logged("start()")
+
+        def _pull_decisions_forever() -> None:
+            floor = float(getattr(self, "_pull_interval_floor", 15))
+            while not stop_event.wait(max(interval, floor)):
+                self._reconcile_logged("tick")
+
+        threading.Thread(target=_pull_decisions_forever, daemon=True, name="hivecast-decision-pull").start()
 
     def stop(self) -> None:
         pass

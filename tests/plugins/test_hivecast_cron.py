@@ -292,3 +292,24 @@ def test_no_execution_record_acks_fired_delivery_truth(provider, seeded_jobs, mo
     scheduler.fire_claimed(_claim(seeded_jobs["keep"], occurrence="2026-11-02T12:00:00Z"))
 
     assert fake.acks[-1]["outcome"] == "fired"
+
+
+def test_start_pulls_decisions_periodically_until_stopped(provider, monkeypatch):
+    """The decision pull is the two-way-sync channel for cross-process
+    decisions (CLI-armed / gateway-fired): start() must keep pulling on the
+    interval until stop_event, not only on in-process hooks."""
+    import threading
+    import time
+
+    scheduler, _fake = provider
+    calls: list[str] = []
+    monkeypatch.setattr(scheduler, "_reconcile_logged", lambda what: calls.append(what))
+    scheduler._pull_interval_floor = 0.05
+
+    stop = threading.Event()
+    scheduler.start(stop, interval=0)
+
+    time.sleep(0.4)
+    stop.set()
+    assert calls[0] == "start()"
+    assert calls.count("tick") >= 2  # periodic, not one-shot
